@@ -2,8 +2,7 @@
 
 import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
-import { ScrollArea } from "@/components/ui/scroll-area"
-import { ChevronLeft, ChevronRight, Clock } from "lucide-react"
+import { ChevronLeft, ChevronRight, Clock } from 'lucide-react'
 
 interface HistoryItem {
   id: string
@@ -20,15 +19,23 @@ interface HistoryItem {
   }
 }
 
-export function HistorySidebar({ history: propHistory }: { history?: HistoryItem[] }) {
+export function HistorySidebar({ 
+  history: propHistory,
+  onItemClick 
+}: { 
+  history?: HistoryItem[]
+  onItemClick?: (item: HistoryItem) => void 
+}) {
   const [isOpen, setIsOpen] = useState(false)
   const [history, setHistory] = useState<HistoryItem[]>([])
   const [loading, setLoading] = useState(false)
 
   useEffect(() => {
     if (propHistory) {
-      console.log("[v0] 📊 Atualizando histórico da sidebar:", propHistory)
-      setHistory(propHistory)
+      const sortedHistory = [...propHistory].sort((a, b) => 
+        new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+      )
+      setHistory(sortedHistory)
     }
   }, [propHistory])
 
@@ -47,8 +54,10 @@ export function HistorySidebar({ history: propHistory }: { history?: HistoryItem
       const response = await fetch(`https://projeto-crm-ead.onrender.com/history/${userId}`)
       if (response.ok) {
         const data = await response.json()
-        console.log("[v0] 📊 Histórico carregado diretamente:", data)
-        setHistory(data)
+        const sortedData = [...data].sort((a, b) => 
+          new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+        )
+        setHistory(sortedData)
       }
     } catch (error) {
       console.error("[v0] Erro ao carregar histórico:", error)
@@ -68,6 +77,12 @@ export function HistorySidebar({ history: propHistory }: { history?: HistoryItem
     })
   }
 
+  const handleItemClick = (item: HistoryItem) => {
+    if (onItemClick) {
+      onItemClick(item)
+    }
+  }
+
   return (
     <>
       <div
@@ -83,7 +98,7 @@ export function HistorySidebar({ history: propHistory }: { history?: HistoryItem
             </h3>
           </div>
 
-          <ScrollArea className="flex-1">
+          <div className="flex-1 overflow-y-auto pr-2 custom-scrollbar">
             {loading ? (
               <div className="text-center text-muted-foreground py-8">Carregando...</div>
             ) : history.length === 0 ? (
@@ -93,6 +108,7 @@ export function HistorySidebar({ history: propHistory }: { history?: HistoryItem
                 {history.map((item) => (
                   <div
                     key={item.id}
+                    onClick={() => handleItemClick(item)}
                     className="p-3 rounded-lg bg-secondary hover:bg-secondary/80 transition-colors cursor-pointer"
                   >
                     <div className="flex items-center gap-2 mb-1">
@@ -106,7 +122,7 @@ export function HistorySidebar({ history: propHistory }: { history?: HistoryItem
                 ))}
               </div>
             )}
-          </ScrollArea>
+          </div>
         </div>
       </div>
 
@@ -118,6 +134,30 @@ export function HistorySidebar({ history: propHistory }: { history?: HistoryItem
       >
         {isOpen ? <ChevronRight className="w-4 h-4" /> : <ChevronLeft className="w-4 h-4" />}
       </Button>
+
+      <style jsx global>{`
+        .custom-scrollbar::-webkit-scrollbar {
+          width: 4px;
+        }
+        
+        .custom-scrollbar::-webkit-scrollbar-track {
+          background: transparent;
+        }
+        
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+          background: hsl(var(--primary) / 0.3);
+          border-radius: 2px;
+        }
+        
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+          background: hsl(var(--primary) / 0.5);
+        }
+        
+        .custom-scrollbar {
+          scrollbar-width: thin;
+          scrollbar-color: hsl(var(--primary) / 0.3) transparent;
+        }
+      `}</style>
     </>
   )
 }
